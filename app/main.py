@@ -69,7 +69,7 @@ app.add_middleware(
 
 app.include_router(register_router, prefix="/api/v1", tags=["auth"])
 app.include_router(login_router, prefix="/api/v1", tags=["auth"])
-app.include_router(forgot_pass_router, prefix="/api/v1", tags=["auth"]) 
+app.include_router(forgot_pass_router, prefix="/api/v1", tags=["auth"])
 app.include_router(refresh_router, prefix="/api/v1", tags=["auth"])
 app.include_router(get_me_router, prefix="/api/v1", tags=["auth"])
 
