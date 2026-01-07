@@ -8,7 +8,8 @@ engine = create_engine(
 )
 
 def create_db_and_tables():
-    from app.modules.identity.domain.user import User 
+    from app.modules.identity.domain.user import User
+    from app.modules.subscription.domain.plan import SubscriptionPlan, PlanFeature 
     SQLModel.metadata.create_all(engine)
 
 def get_session():

@@ -1,10 +1,6 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from enum import Enum
-
-class UserTier(str, Enum):
-    FREE = "FREE"
-    VIP = "VIP"
+from app.shared.domain.enums import UserTier
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
