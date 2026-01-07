@@ -5,7 +5,7 @@ from app.modules.identity.features.login.router import router as login_router
 from app.modules.identity.features.forgot_password.router import router as forgot_pass_router
 from app.modules.identity.features.refresh_token.router import router as refresh_router
 
-from app.modules.market.features.get_ai_analysis.router import router as ai_router
+from app.modules.analysis.features.analyze_news.router import router as analyze_router
 
 from app.modules.market.features.check_chart_access.router import router as chart_router
 
@@ -33,7 +33,7 @@ app.include_router(login_router, prefix="/api/v1", tags=["auth"])
 app.include_router(forgot_pass_router, prefix="/api/v1", tags=["auth"]) 
 app.include_router(refresh_router, prefix="/api/v1", tags=["auth"])
 
-app.include_router(ai_router, prefix="/api/v1", tags=["market"])
+app.include_router(analyze_router, prefix="/api/v1", tags=["analysis"])
 
 app.include_router(chart_router, prefix="/api/v1", tags=["market"])
 
