@@ -10,5 +10,6 @@ class AnalysisResult(SQLModel, table=True):
     news_id: str = Field(index=True) # ID của bản tin
     sentiment: str                   # positive/negative
     confidence: float                # 0.95
+    trend: str = Field(default="NEUTRAL") # UP/DOWN/NEUTRAL
     reasoning: str                   # Text giải thích dài
     created_at: datetime = Field(default_factory=datetime.utcnow)
