@@ -1,6 +1,5 @@
-# app/modules/identity/features/register/handler.py
-from sqlmodel import Session, select
-from app.modules.identity.domain.user import User # Refactor từ app/models/user.py
+from sqlmodel import Session, select, or_
+from app.modules.identity.domain.user import User
 from app.shared.infrastructure.security import get_password_hash
 
 class RegisterHandler:
@@ -8,19 +7,20 @@ class RegisterHandler:
         self.session = session
 
     def handle(self, payload):
-        # 1. Validate Business Rules (Email unique)
-        statement = select(User).where(User.email == payload.email)
+        # Check Username hoặc Email đã tồn tại chưa
+        statement = select(User).where(
+            or_(User.username == payload.username)
+        )
         if self.session.exec(statement).first():
-            raise ValueError("Email already registered")
+            raise ValueError("Username already registered")
 
-        # 2. Perform Logic
         new_user = User(
-            email=payload.email,
+            username=payload.username,
+            full_name=payload.full_name,
             hashed_password=get_password_hash(payload.password),
-            tier="FREE" # Default logic
+            tier="FREE"
         )
         
-        # 3. Persist
         self.session.add(new_user)
         self.session.commit()
         return new_user
