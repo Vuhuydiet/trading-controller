@@ -1,12 +1,6 @@
 # app/modules/market/public_api.py
 from datetime import datetime
 
-async def get_price_history(symbol: str, start: datetime, end: datetime):
-    # TODO: Implement function to get historical price data
-    # Logic: Query DB của Market hoặc gọi API sàn Binance lưu trong cache
-    # Trả về list OHLCV
-    return "Price data from DB..."
-
 async def get_price_movements(symbol: str, target_time: datetime) -> str:
     """
     Trả về mô tả biến động giá xung quanh thời điểm target_time.
