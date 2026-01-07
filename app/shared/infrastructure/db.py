@@ -1,9 +1,14 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, create_engine
+from sqlmodel import Session
 from app.shared.core.config import settings
 
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    settings.DATABASE_URL, 
+    connect_args={"check_same_thread": False}
+)
 
-def init_db():
+def create_db_and_tables():
+    from app.modules.identity.domain.user import User 
     SQLModel.metadata.create_all(engine)
 
 def get_session():
