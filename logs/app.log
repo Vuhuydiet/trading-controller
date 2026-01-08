@@ -38,3 +38,17 @@
 2026-01-07 15:19:34,338 - app.modules.market.infrastructure.binance_ws_manager - INFO - Stopping WebSocket manager
 2026-01-07 15:19:43,359 - app.modules.market.infrastructure.binance_ws_manager - WARNING - WebSocket connection closed
 2026-01-07 15:19:43,360 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager stopped
+2026-01-08 12:43:15,602 - app.modules.market.infrastructure.binance_ws_manager - INFO - Starting WebSocket manager with 5 streams
+2026-01-08 12:43:15,602 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager started successfully
+2026-01-08 12:43:15,603 - app.modules.market.infrastructure.binance_ws_manager - INFO - Connecting to Binance WebSocket: 5 streams
+2026-01-08 12:43:16,120 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connected successfully
+2026-01-08 12:45:24,069 - app.modules.market.infrastructure.binance_ws_manager - INFO - Stopping WebSocket manager
+2026-01-08 12:45:30,247 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connection task cancelled
+2026-01-08 12:45:30,247 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager stopped
+2026-01-08 12:45:31,534 - app.modules.market.infrastructure.binance_ws_manager - INFO - Starting WebSocket manager with 5 streams
+2026-01-08 12:45:31,534 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager started successfully
+2026-01-08 12:45:31,534 - app.modules.market.infrastructure.binance_ws_manager - INFO - Connecting to Binance WebSocket: 5 streams
+2026-01-08 12:45:31,973 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connected successfully
+2026-01-08 12:45:54,874 - app.modules.market.infrastructure.binance_ws_manager - INFO - Stopping WebSocket manager
+2026-01-08 12:46:03,769 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connection task cancelled
+2026-01-08 12:46:03,770 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager stopped
