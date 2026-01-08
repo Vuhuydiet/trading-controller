@@ -116,23 +116,6 @@ The application will be available at:
 - Interactive Docs: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
-## API Endpoints
-
-### Authentication
-- POST /api/v1/register - Register new user
-- POST /api/v1/login - Login and get access token
-
-### Market Data
-- GET /api/v1/market/symbols - List trading symbols
-- GET /api/v1/market/symbols/{symbol} - Get symbol details
-- GET /api/v1/market/symbols/{symbol}/info - Get symbol information
-- GET /api/v1/market/price/{symbol} - Get current price
-- GET /api/v1/market/prices - Get multiple prices
-- GET /api/v1/market/ticker/{symbol} - Get 24hr ticker
-- GET /api/v1/market/tickers - Get multiple tickers
-- GET /api/v1/market/klines/{symbol} - Get candlestick data
-- GET /api/v1/market/depth/{symbol} - Get order book depth
-- GET /api/v1/market/ws/status - WebSocket connection status
 
 ## Project Structure
 
