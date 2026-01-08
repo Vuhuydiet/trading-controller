@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: trading-controller
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+Requires-Dist: bcrypt<4.1
+Requires-Dist: fastapi>=0.128.0
+Requires-Dist: httpx>=0.28.1
+Requires-Dist: passlib[bcrypt]>=1.7.4
+Requires-Dist: pydantic-settings>=2.12.0
+Requires-Dist: pydantic[email]>=2.12.5
+Requires-Dist: python-jose[cryptography]>=3.5.0
+Requires-Dist: python-multipart>=0.0.21
+Requires-Dist: sqlmodel>=0.0.31
+Requires-Dist: uvicorn[standard]>=0.40.0
+Requires-Dist: websockets>=14.1
+
+# trading-controller
