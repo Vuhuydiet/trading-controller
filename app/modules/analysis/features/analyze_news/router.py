@@ -28,7 +28,7 @@ def get_handler(session: Session = Depends(get_session)) -> AnalyzeNewsHandler:
         aligner=NewsPriceAligner()
     )
 
-@router.post("ai-analysis", response_model=AnalyzeNewsResponse)
+@router.post("/ai-analysis", response_model=AnalyzeNewsResponse)
 async def analyze_news(
     body: AnalyzeNewsRequest,
     handler: AnalyzeNewsHandler = Depends(get_handler)
