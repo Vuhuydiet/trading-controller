@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7    
+    AI_REASONING_MODEL: str = "llama3.2"
 
     # Binance API Configuration
     BINANCE_API_BASE_URL: str
