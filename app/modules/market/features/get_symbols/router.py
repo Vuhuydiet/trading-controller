@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from typing import Optional, List
-from app.modules.identity.public_api import get_current_user_dto
+from app.modules.identity.optional_auth import get_current_user_optional
+from app.modules.identity.public_api import UserDTO
 from .handler import GetSymbolsHandler, GetSymbolDetailHandler, GetSymbolInfoHandler
 from .dtos import SymbolResponse, SymbolDetailResponse, SymbolInfoResponse
 
@@ -11,12 +12,12 @@ router = APIRouter()
     "/symbols",
     response_model=List[SymbolResponse],
     summary="List all trading symbols",
-    description="Retrieve a list of all available trading pairs from Binance with optional filtering by quote asset and trading status."
+    description="Retrieve a list of all available trading pairs from Binance with optional filtering by quote asset and trading status. Public endpoint - no authentication required."
 )
 async def get_symbols(
     quote_asset: Optional[str] = Query(None, description="Filter by quote asset (e.g., USDT, BTC)"),
     status: Optional[str] = Query(None, description="Filter by status (e.g., TRADING, BREAK)"),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetSymbolsHandler()
@@ -32,11 +33,11 @@ async def get_symbols(
     "/symbols/{symbol}",
     response_model=SymbolDetailResponse,
     summary="Get symbol details",
-    description="Retrieve detailed information about a specific trading pair including precision, order types, and trading permissions."
+    description="Retrieve detailed information about a specific trading pair including precision, order types, and trading permissions. Public endpoint - no authentication required."
 )
 async def get_symbol_detail(
     symbol: str = Path(..., description="Trading pair symbol (e.g., BTCUSDT)"),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetSymbolDetailHandler()
@@ -52,11 +53,11 @@ async def get_symbol_detail(
     "/symbols/{symbol}/info",
     response_model=SymbolInfoResponse,
     summary="Get complete symbol information",
-    description="Retrieve comprehensive trading information for a symbol including all trading rules, filters, precision settings, and permissions."
+    description="Retrieve comprehensive trading information for a symbol including all trading rules, filters, precision settings, and permissions. Public endpoint - no authentication required."
 )
 async def get_symbol_info(
     symbol: str = Path(..., description="Trading pair symbol (e.g., BTCUSDT)"),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetSymbolInfoHandler()

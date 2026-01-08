@@ -38,3 +38,13 @@
 2026-01-07 15:19:34,338 - app.modules.market.infrastructure.binance_ws_manager - INFO - Stopping WebSocket manager
 2026-01-07 15:19:43,359 - app.modules.market.infrastructure.binance_ws_manager - WARNING - WebSocket connection closed
 2026-01-07 15:19:43,360 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager stopped
+2026-01-08 17:47:22,693 - app.modules.market.infrastructure.binance_ws_manager - INFO - Starting WebSocket manager with 5 streams
+2026-01-08 17:47:22,694 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager started successfully
+2026-01-08 17:47:22,694 - app.modules.market.infrastructure.binance_ws_manager - INFO - Connecting to Binance WebSocket: 5 streams
+2026-01-08 17:47:23,140 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connected successfully
+2026-01-08 17:48:04,448 - app.modules.market.infrastructure.binance_rest_client - INFO - Binance API call: GET /api/v3/exchangeInfo (attempt 1)
+2026-01-08 17:48:05,502 - httpx - INFO - HTTP Request: GET https://api.binance.com/api/v3/exchangeInfo "HTTP/1.1 200 OK"
+2026-01-08 17:48:05,601 - app.modules.market.infrastructure.binance_rest_client - INFO - Binance API success: GET /api/v3/exchangeInfo
+2026-01-08 17:49:33,835 - app.modules.market.infrastructure.binance_ws_manager - INFO - Stopping WebSocket manager
+2026-01-08 17:49:43,763 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket connection task cancelled
+2026-01-08 17:49:43,764 - app.modules.market.infrastructure.binance_ws_manager - INFO - WebSocket manager stopped
