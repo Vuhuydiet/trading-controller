@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from typing import Optional, List
-from app.modules.identity.public_api import get_current_user_dto
+from app.modules.identity.optional_auth import get_current_user_optional
+from app.modules.identity.public_api import UserDTO
 from .handler import GetPriceHandler, GetPricesHandler
 from .dtos import PriceResponse, PricesResponse
 
@@ -11,11 +12,11 @@ router = APIRouter()
     "/price/{symbol}",
     response_model=PriceResponse,
     summary="Get current price for a symbol",
-    description="Retrieve the latest price for a trading pair from WebSocket cache (real-time) or Binance API."
+    description="Retrieve the latest price for a trading pair from WebSocket cache (real-time) or Binance API. Public endpoint - no authentication required."
 )
 async def get_price(
     symbol: str = Path(..., description="Trading pair symbol (e.g., BTCUSDT)"),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetPriceHandler()
@@ -31,11 +32,11 @@ async def get_price(
     "/prices",
     response_model=PricesResponse,
     summary="Get current prices for multiple symbols",
-    description="Retrieve the latest prices for multiple trading pairs from WebSocket cache (real-time) or Binance API."
+    description="Retrieve the latest prices for multiple trading pairs from WebSocket cache (real-time) or Binance API. Public endpoint - no authentication required."
 )
 async def get_prices(
     symbols: Optional[List[str]] = Query(None, description="List of symbols (e.g., BTCUSDT,ETHUSDT)"),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetPricesHandler()
