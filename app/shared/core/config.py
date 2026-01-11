@@ -9,8 +9,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DATABASE_URL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7    
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # AI Model Configuration
     AI_REASONING_MODEL: str = "llama3.2"
+    AI_SENTIMENT_MODEL: str = "finbert"  # finbert | openai | ensemble
+    AI_REASONING_PROVIDER: str = "ollama"  # ollama | openai | gemini
+
+    # AI API Keys (optional - only for cloud providers)
+    OPENAI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
 
     # Binance API Configuration
     BINANCE_API_BASE_URL: str
