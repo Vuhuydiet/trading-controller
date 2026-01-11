@@ -16,6 +16,14 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 - Trading symbols information
 - Multi-layer caching for optimal performance
 
+**News & Insights**
+- Automated news crawling from CoinDesk, Reuters, Bloomberg, Twitter
+- MongoDB-based article storage
+- AI-powered sentiment analysis and key point extraction
+- Cryptocurrency mention detection
+- Market impact prediction
+- Configurable cronjob pipeline for automatic processing
+
 **Authentication & Authorization**
 - JWT-based authentication
 - User registration and login
@@ -25,7 +33,10 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 - Modular Monolith Architecture
 - Vertical Slice pattern for feature organization
 - SQLite database with SQLModel ORM
+- MongoDB integration for document storage
 - WebSocket integration with auto-reconnection
+- LLM integration (Ollama, OpenAI, Anthropic) for intelligent analysis
+- APScheduler for automated workflows
 - Rate limiting (1200 requests/minute)
 - Comprehensive logging
 - OpenAPI documentation
@@ -33,11 +44,15 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 ## Tech Stack
 
 - **Framework:** FastAPI 0.128.0+
-- **Database:** SQLite with SQLModel
+- **Database:** SQLite with SQLModel + MongoDB with Motor
 - **Authentication:** JWT with python-jose
-- **External APIs:** Binance REST & WebSocket
+- **External APIs:** Binance REST & WebSocket, CoinDesk, Reuters, Bloomberg, Twitter
 - **Validation:** Pydantic 2.12+
 - **Server:** Uvicorn/Gunicorn
+- **Job Scheduling:** APScheduler
+- **AI/ML:** LLM Integration (Ollama, OpenAI, Anthropic)
+- **HTML Parsing:** BeautifulSoup4
+- **Feed Parsing:** Feedparser
 
 ## Quick Start
 
@@ -130,16 +145,24 @@ trading-controller/
 │   │   │   │   ├── login/
 │   │   │   │   └── register/
 │   │   │   └── public_api.py
-│   │   └── market/                  # Market data module
-│   │       ├── domain/              # Domain models
-│   │       ├── infrastructure/      # External integrations
-│   │       └── features/            # Feature slices
+│   │   ├── market/                  # Market data module
+│   │   │   ├── domain/              # Domain models
+│   │   │   ├── infrastructure/      # External integrations
+│   │   │   └── features/            # Feature slices
+│   │   ├── news/                    # News & insights module (NEW)
+│   │   │   ├── domain/              # Domain models
+│   │   │   ├── infrastructure/      # MongoDB, crawlers, LLM
+│   │   │   ├── features/            # API endpoints
+│   │   │   └── public_api.py
+│   │   └── analysis/                # Analysis module
 │   └── shared/
 │       ├── core/                    # Core configuration
 │       └── infrastructure/          # Shared infrastructure
 ├── logs/                            # Application logs
 ├── .env                             # Environment configuration
 ├── pyproject.toml                   # Dependencies
+├── NEWS_MODULE_README.md            # News module documentation
+├── SETUP_NEWS_MODULE.md             # Setup guide
 └── README.md
 ```
 
@@ -170,6 +193,8 @@ Follow the Vertical Slice pattern:
 See detailed guides:
 - Local development: README_LOCAL.md
 - Production deployment: README_PRODUCTION.md
+- News Module Setup: SETUP_NEWS_MODULE.md
+- News Module Documentation: NEWS_MODULE_README.md
 - API documentation: API_ENDPOINTS_VERIFICATION.md
 - Implementation details: IMPLEMENTATION_SUMMARY.md
 
@@ -205,9 +230,18 @@ gunicorn app.main:app \
 | BINANCE_API_SECRET | Binance API secret | No | - |
 | BINANCE_API_BASE_URL | Binance API URL | No | https://api.binance.com |
 | BINANCE_WS_BASE_URL | Binance WebSocket URL | No | wss://stream.binance.com:9443 |
+| MONGODB_URI | MongoDB connection string | No | mongodb://localhost:27017 |
+| MONGODB_DB_NAME | MongoDB database name | No | trading_controller |
+| LLM_PROVIDER | LLM provider (ollama\|openai\|anthropic) | No | ollama |
+| LLM_MODEL | LLM model name | No | llama2 |
+| OPENAI_API_KEY | OpenAI API key | No | - |
+| ANTHROPIC_API_KEY | Anthropic API key | No | - |
+| NEWS_CRAWL_INTERVAL_MINUTES | News crawl interval | No | 60 |
+| TWITTER_BEARER_TOKEN | Twitter API token | No | - |
 | DEBUG | Enable debug mode | No | False |
 
 Note: BINANCE_API_KEY and BINANCE_API_SECRET are optional for public endpoints.
+For news module: MONGODB_URI is required to use news features.
 
 ## Architecture
 
