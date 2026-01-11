@@ -23,24 +23,25 @@ class AnalyzeNewsHandler:
             published_at=request.published_at
         )
 
-        # 2. Tạo task chạy song song (Chưa chạy ngay, chỉ mới lên nòng)
+        # 2. Run sentiment and reasoning analysis in parallel
         sentiment_task = self.sentiment_bot.analyze_sentiment(request.news_content)
         reasoning_task = self.reasoning_bot.explain_market_trend(news=aligned_context)
 
+        sentiment_result, reasoning_result = await asyncio.gather(sentiment_task, reasoning_task)
 
-        sentiment_res, reasoning_result = await asyncio.gather(sentiment_task, reasoning_task)
-
+        # 3. Save analysis result to database
         await self.repo.save_analysis_result(
             news_id=request.news_id,
-            sentiment=sentiment_res['label'],
-            confidence=sentiment_res['score'],
-            trend=reasoning_result['trend'],
-            reasoning=reasoning_result['reasoning']
+            sentiment=sentiment_result.label,
+            confidence=sentiment_result.score,
+            trend=reasoning_result.trend,
+            reasoning=reasoning_result.reasoning
         )
 
+        # 4. Return response
         return AnalyzeNewsResponse(
-            sentiment=sentiment_res['label'],
-            confidence=sentiment_res['score'],
-            trend=reasoning_result['trend'],
-            reasoning=reasoning_result['reasoning']
+            sentiment=sentiment_result.label,
+            confidence=sentiment_result.score,
+            trend=reasoning_result.trend,
+            reasoning=reasoning_result.reasoning
         )
