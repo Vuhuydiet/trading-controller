@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlmodel import Session
 from typing import Optional, List
 from app.shared.infrastructure.db import get_session
-from app.modules.identity.public_api import get_current_user_dto
+from app.modules.identity.optional_auth import get_current_user_optional
+from app.modules.identity.public_api import UserDTO
 from .handler import GetTickerHandler, GetTickersHandler
 from .dtos import TickerResponse, TickersResponse
 
@@ -13,12 +14,12 @@ router = APIRouter()
     "/ticker/{symbol}",
     response_model=TickerResponse,
     summary="Get 24hr ticker statistics by path parameter",
-    description="Retrieve 24-hour rolling window price change statistics for a trading pair including price change, volume, high/low, and bid/ask prices."
+    description="Retrieve 24-hour rolling window price change statistics for a trading pair including price change, volume, high/low, and bid/ask prices. Public endpoint - no authentication required."
 )
 async def get_ticker_by_path(
     symbol: str = Path(..., description="Trading pair symbol (e.g., BTCUSDT)"),
     session: Session = Depends(get_session),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetTickerHandler(session)
@@ -34,12 +35,12 @@ async def get_ticker_by_path(
     "/ticker",
     response_model=TickerResponse,
     summary="Get 24hr ticker statistics by query parameter",
-    description="Retrieve 24-hour rolling window price change statistics for a trading pair including price change, volume, high/low, and bid/ask prices."
+    description="Retrieve 24-hour rolling window price change statistics for a trading pair including price change, volume, high/low, and bid/ask prices. Public endpoint - no authentication required."
 )
 async def get_ticker_by_query(
     symbol: str = Query(..., description="Trading pair symbol (e.g., BTCUSDT)"),
     session: Session = Depends(get_session),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetTickerHandler(session)
@@ -55,12 +56,12 @@ async def get_ticker_by_query(
     "/tickers",
     response_model=TickersResponse,
     summary="Get 24hr ticker statistics for multiple symbols",
-    description="Retrieve 24-hour rolling window price change statistics for multiple trading pairs or all symbols if no filter is provided."
+    description="Retrieve 24-hour rolling window price change statistics for multiple trading pairs or all symbols if no filter is provided. Public endpoint - no authentication required."
 )
 async def get_tickers(
     symbols: Optional[List[str]] = Query(None, description="List of symbols (e.g., BTCUSDT,ETHUSDT)"),
     session: Session = Depends(get_session),
-    user = Depends(get_current_user_dto)
+    user: Optional[UserDTO] = Depends(get_current_user_optional)
 ):
     try:
         handler = GetTickersHandler(session)
