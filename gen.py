@@ -1,2 +1,7 @@
-import secrets
-print(secrets.token_urlsafe(64))
+import torch
+print(torch.__version__)
+print(torch.cuda.is_available())
+print(torch.version.cuda)
+print(torch.cuda.device_count())
+
+# uv run uvicorn app.main:app --reload
