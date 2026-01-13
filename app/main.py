@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.shared.core.logging_config import setup_logging
 
@@ -53,6 +54,18 @@ async def lifespan(app: FastAPI):
 
 # Khởi tạo app với lifespan đã gộp
 app = FastAPI(lifespan=lifespan, title="Modular Monolith Trading")
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(register_router, prefix="/api/v1", tags=["auth"])
 app.include_router(login_router, prefix="/api/v1", tags=["auth"])
