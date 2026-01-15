@@ -34,7 +34,7 @@ class OllamaInsightParser(LLMInsightParser):
         """Parse article using Ollama"""
 
         if not self.client:
-            return self._create_basic_insight(article, "ollama")
+            return self._create_basic_insight(article)
 
         try:
             prompt = self._create_prompt(article)
@@ -45,13 +45,11 @@ class OllamaInsightParser(LLMInsightParser):
                 stream=False,
             )
 
-            result = self._parse_response(response["response"], article)
-            result.llm_model_used = self.model
-            return result
+            return self._parse_response(response["response"], article)
 
         except Exception as e:
             logger.error(f"Error parsing article with Ollama: {str(e)}")
-            return self._create_basic_insight(article, "ollama")
+            return self._create_basic_insight(article)
 
     def _create_prompt(self, article: NewsArticle) -> str:
         """Create prompt for LLM"""
@@ -63,12 +61,10 @@ Content: {article.content[:2000]}
 Please provide a JSON response with the following structure (and ONLY this JSON, no other text):
 {{
     "cryptocurrency_mentioned": ["list of cryptos mentioned"],
-    "sentiment": "positive/negative/neutral",
+    "sentiment": "bullish/bearish/neutral",
     "sentiment_score": 0.5,
     "key_points": ["important points"],
-    "market_impact": "bullish/bearish/neutral or description",
-    "entities": {{"entities_type": ["list of named entities"]}},
-    "tags": ["topic tags"],
+    "market_impact": "brief description of potential market impact",
     "summary": "brief summary"
 }}
 
@@ -89,31 +85,26 @@ Return only valid JSON."""
             data = json.loads(json_str.strip())
 
             return NewsInsight(
-                article_id=article.id or "unknown",
-                source=article.source,
-                cryptocurrency_mentioned=data.get("cryptocurrency_mentioned", []),
+                summary=data.get("summary", article.title),
                 sentiment=data.get("sentiment", "neutral"),
-                sentiment_score=data.get("sentiment_score", 0.0),
                 key_points=data.get("key_points", []),
-                market_impact=data.get("market_impact", ""),
-                entities=data.get("entities", {}),
-                tags=data.get("tags", []),
-                summary=data.get("summary", ""),
-                raw_analysis=data,
+                market_impact=data.get("market_impact"),
+                affected_symbols=data.get("cryptocurrency_mentioned", []),
+                confidence_score=abs(data.get("sentiment_score", 0.0)),
             )
         except Exception as e:
             logger.error(f"Error parsing LLM response: {str(e)}")
-            return self._create_basic_insight(article, "ollama")
+            return self._create_basic_insight(article)
 
-    def _create_basic_insight(self, article: NewsArticle, model: str) -> NewsInsight:
+    def _create_basic_insight(self, article: NewsArticle) -> NewsInsight:
         """Create basic insight when LLM parsing fails"""
         return NewsInsight(
-            article_id=article.id or "unknown",
-            source=article.source,
-            sentiment="neutral",
-            sentiment_score=0.0,
             summary=article.title,
-            llm_model_used=model,
+            sentiment="neutral",
+            key_points=[],
+            market_impact=None,
+            affected_symbols=[],
+            confidence_score=0.0,
         )
 
 
@@ -139,7 +130,7 @@ class OpenAIInsightParser(LLMInsightParser):
         """Parse article using OpenAI"""
 
         if not self.client:
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
         try:
             prompt = self._create_prompt(article)
@@ -156,13 +147,11 @@ class OpenAIInsightParser(LLMInsightParser):
                 temperature=0.7,
             )
 
-            result = self._parse_response(response.choices[0].message.content or "", article)
-            result.llm_model_used = self.model
-            return result
+            return self._parse_response(response.choices[0].message.content or "", article)
 
         except Exception as e:
             logger.error(f"Error parsing article with OpenAI: {str(e)}")
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
     def _create_prompt(self, article: NewsArticle) -> str:
         """Create prompt for OpenAI"""
@@ -174,12 +163,10 @@ Content: {article.content[:2000]}
 Please provide a JSON response with the following structure (and ONLY this JSON, no other text):
 {{
     "cryptocurrency_mentioned": ["list of cryptos mentioned"],
-    "sentiment": "positive/negative/neutral",
+    "sentiment": "bullish/bearish/neutral",
     "sentiment_score": 0.5,
     "key_points": ["important points"],
-    "market_impact": "bullish/bearish/neutral or description",
-    "entities": {{"entities_type": ["list of named entities"]}},
-    "tags": ["topic tags"],
+    "market_impact": "brief description of potential market impact",
     "summary": "brief summary"
 }}
 
@@ -199,31 +186,26 @@ Return only valid JSON."""
             data = json.loads(json_str.strip())
 
             return NewsInsight(
-                article_id=article.id or "unknown",
-                source=article.source,
-                cryptocurrency_mentioned=data.get("cryptocurrency_mentioned", []),
+                summary=data.get("summary", article.title),
                 sentiment=data.get("sentiment", "neutral"),
-                sentiment_score=data.get("sentiment_score", 0.0),
                 key_points=data.get("key_points", []),
-                market_impact=data.get("market_impact", ""),
-                entities=data.get("entities", {}),
-                tags=data.get("tags", []),
-                summary=data.get("summary", ""),
-                raw_analysis=data,
+                market_impact=data.get("market_impact"),
+                affected_symbols=data.get("cryptocurrency_mentioned", []),
+                confidence_score=abs(data.get("sentiment_score", 0.0)),
             )
         except Exception as e:
             logger.error(f"Error parsing LLM response: {str(e)}")
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
-    def _create_basic_insight(self, article: NewsArticle, model: str) -> NewsInsight:
+    def _create_basic_insight(self, article: NewsArticle) -> NewsInsight:
         """Create basic insight when LLM parsing fails"""
         return NewsInsight(
-            article_id=article.id or "unknown",
-            source=article.source,
-            sentiment="neutral",
-            sentiment_score=0.0,
             summary=article.title,
-            llm_model_used=model,
+            sentiment="neutral",
+            key_points=[],
+            market_impact=None,
+            affected_symbols=[],
+            confidence_score=0.0,
         )
 
 
@@ -249,7 +231,7 @@ class AnthropicInsightParser(LLMInsightParser):
         """Parse article using Anthropic"""
 
         if not self.client:
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
         try:
             prompt = self._create_prompt(article)
@@ -260,13 +242,11 @@ class AnthropicInsightParser(LLMInsightParser):
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            result = self._parse_response(response.content[0].text, article)
-            result.llm_model_used = self.model
-            return result
+            return self._parse_response(response.content[0].text, article)
 
         except Exception as e:
             logger.error(f"Error parsing article with Anthropic: {str(e)}")
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
     def _create_prompt(self, article: NewsArticle) -> str:
         """Create prompt for Anthropic"""
@@ -278,12 +258,10 @@ Content: {article.content[:2000]}
 Please provide a JSON response with the following structure (and ONLY this JSON, no other text):
 {{
     "cryptocurrency_mentioned": ["list of cryptos mentioned"],
-    "sentiment": "positive/negative/neutral",
+    "sentiment": "bullish/bearish/neutral",
     "sentiment_score": 0.5,
     "key_points": ["important points"],
-    "market_impact": "bullish/bearish/neutral or description",
-    "entities": {{"entities_type": ["list of named entities"]}},
-    "tags": ["topic tags"],
+    "market_impact": "brief description of potential market impact",
     "summary": "brief summary"
 }}
 
@@ -303,31 +281,26 @@ Return only valid JSON."""
             data = json.loads(json_str.strip())
 
             return NewsInsight(
-                article_id=article.id or "unknown",
-                source=article.source,
-                cryptocurrency_mentioned=data.get("cryptocurrency_mentioned", []),
+                summary=data.get("summary", article.title),
                 sentiment=data.get("sentiment", "neutral"),
-                sentiment_score=data.get("sentiment_score", 0.0),
                 key_points=data.get("key_points", []),
-                market_impact=data.get("market_impact", ""),
-                entities=data.get("entities", {}),
-                tags=data.get("tags", []),
-                summary=data.get("summary", ""),
-                raw_analysis=data,
+                market_impact=data.get("market_impact"),
+                affected_symbols=data.get("cryptocurrency_mentioned", []),
+                confidence_score=abs(data.get("sentiment_score", 0.0)),
             )
         except Exception as e:
             logger.error(f"Error parsing LLM response: {str(e)}")
-            return self._create_basic_insight(article, self.model)
+            return self._create_basic_insight(article)
 
-    def _create_basic_insight(self, article: NewsArticle, model: str) -> NewsInsight:
+    def _create_basic_insight(self, article: NewsArticle) -> NewsInsight:
         """Create basic insight when LLM parsing fails"""
         return NewsInsight(
-            article_id=article.id or "unknown",
-            source=article.source,
-            sentiment="neutral",
-            sentiment_score=0.0,
             summary=article.title,
-            llm_model_used=model,
+            sentiment="neutral",
+            key_points=[],
+            market_impact=None,
+            affected_symbols=[],
+            confidence_score=0.0,
         )
 
 

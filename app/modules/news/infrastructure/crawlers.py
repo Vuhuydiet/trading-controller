@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from app.modules.news.domain.article import ArticleStatus, NewsArticle, NewsSource
+from app.modules.news.domain.article import NewsArticle, NewsSource
 from app.modules.news.domain.ports import NewsCrawler
 
 logger = logging.getLogger(__name__)
@@ -52,13 +52,11 @@ class CoinDeskCrawler(NewsCrawler):
                     title=title.get_text(strip=True),
                     content="\n".join([div.get_text(strip=True) for div in content_divs]),
                     url=url,
-                    published_date=(
+                    published_at=(
                         datetime.fromisoformat(str(published.get("datetime", "")))
                         if published and isinstance(published, Tag) and published.get("datetime")
                         else datetime.now(timezone.utc)
                     ),
-                    raw_html=response.text,
-                    status=ArticleStatus.CRAWLED,
                 )
         except Exception as e:
             logger.error(f"Error parsing CoinDesk article {url}: {str(e)}")
