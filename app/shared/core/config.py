@@ -26,10 +26,6 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: Optional[str] = None
     BINANCE_API_SECRET: Optional[str] = None
 
-    # MongoDB Configuration (for other modules)
-    MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "trading_controller"
-
     # Kafka Configuration for News Module
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
     KAFKA_NEWS_ARTICLES_TOPIC: str = "news.articles"

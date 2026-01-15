@@ -33,7 +33,7 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 - Modular Monolith Architecture
 - Vertical Slice pattern for feature organization
 - SQLite database with SQLModel ORM
-- MongoDB integration for document storage
+- Kafka message queue for event streaming
 - WebSocket integration with auto-reconnection
 - LLM integration (Ollama, OpenAI, Anthropic) for intelligent analysis
 - APScheduler for automated workflows
@@ -180,7 +180,7 @@ trading-controller/
 │   │   │   └── features/            # Feature slices
 │   │   ├── news/                    # News & insights module (NEW)
 │   │   │   ├── domain/              # Domain models
-│   │   │   ├── infrastructure/      # MongoDB, crawlers, LLM
+│   │   │   ├── infrastructure/      # Kafka, crawlers, LLM
 │   │   │   ├── features/            # API endpoints
 │   │   │   └── public_api.py
 │   │   └── analysis/                # Analysis module
