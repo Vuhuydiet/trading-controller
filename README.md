@@ -16,6 +16,14 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 - Trading symbols information
 - Multi-layer caching for optimal performance
 
+**News & Insights**
+- Automated news crawling from CoinDesk, Reuters, Bloomberg, Twitter
+- Publishes to Kafka message queue for downstream consumption
+- AI-powered sentiment analysis and key point extraction
+- Cryptocurrency mention detection
+- Market impact prediction
+- Standalone script for periodic execution
+
 **Authentication & Authorization**
 - JWT-based authentication
 - User registration and login
@@ -25,7 +33,10 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 - Modular Monolith Architecture
 - Vertical Slice pattern for feature organization
 - SQLite database with SQLModel ORM
+- Kafka message queue for event streaming
 - WebSocket integration with auto-reconnection
+- LLM integration (Ollama, OpenAI, Anthropic) for intelligent analysis
+- APScheduler for automated workflows
 - Rate limiting (1200 requests/minute)
 - Comprehensive logging
 - OpenAPI documentation
@@ -34,10 +45,15 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 
 - **Framework:** FastAPI 0.128.0+
 - **Database:** SQLite with SQLModel
+- **Message Queue:** Kafka with aiokafka
 - **Authentication:** JWT with python-jose
-- **External APIs:** Binance REST & WebSocket
+- **External APIs:** Binance REST & WebSocket, CoinDesk, Reuters, Bloomberg, Twitter
 - **Validation:** Pydantic 2.12+
 - **Server:** Uvicorn/Gunicorn
+- **Job Scheduling:** APScheduler
+- **AI/ML:** LLM Integration (Ollama, OpenAI, Anthropic)
+- **HTML Parsing:** BeautifulSoup4
+- **Feed Parsing:** Feedparser
 
 ## Quick Start
 
@@ -116,6 +132,34 @@ The application will be available at:
 - Interactive Docs: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+### Run News Crawler
+
+The news crawler is a standalone script that runs independently from the main API.
+
+**Prerequisites:**
+```bash
+# Start Kafka (using Docker)
+docker run -d --name kafka \
+  -p 9092:9092 \
+  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+  apache/kafka:latest
+```
+
+**Run the crawler:**
+```bash
+# Periodic mode (runs continuously)
+python scripts/crawl_news.py
+
+# One-time execution
+python scripts/crawl_news.py --once
+
+# Using convenience scripts
+./scripts/start_crawler.sh   # Linux/Mac
+scripts\start_crawler.bat    # Windows
+```
+
+See [scripts/README.md](scripts/README.md) for detailed documentation.
+
 
 ## Project Structure
 
@@ -130,16 +174,24 @@ trading-controller/
 │   │   │   │   ├── login/
 │   │   │   │   └── register/
 │   │   │   └── public_api.py
-│   │   └── market/                  # Market data module
-│   │       ├── domain/              # Domain models
-│   │       ├── infrastructure/      # External integrations
-│   │       └── features/            # Feature slices
+│   │   ├── market/                  # Market data module
+│   │   │   ├── domain/              # Domain models
+│   │   │   ├── infrastructure/      # External integrations
+│   │   │   └── features/            # Feature slices
+│   │   ├── news/                    # News & insights module (NEW)
+│   │   │   ├── domain/              # Domain models
+│   │   │   ├── infrastructure/      # Kafka, crawlers, LLM
+│   │   │   ├── features/            # API endpoints
+│   │   │   └── public_api.py
+│   │   └── analysis/                # Analysis module
 │   └── shared/
 │       ├── core/                    # Core configuration
 │       └── infrastructure/          # Shared infrastructure
 ├── logs/                            # Application logs
 ├── .env                             # Environment configuration
 ├── pyproject.toml                   # Dependencies
+├── NEWS_MODULE_README.md            # News module documentation
+├── SETUP_NEWS_MODULE.md             # Setup guide
 └── README.md
 ```
 
@@ -170,6 +222,8 @@ Follow the Vertical Slice pattern:
 See detailed guides:
 - Local development: README_LOCAL.md
 - Production deployment: README_PRODUCTION.md
+- News Module Setup: SETUP_NEWS_MODULE.md
+- News Module Documentation: NEWS_MODULE_README.md
 - API documentation: API_ENDPOINTS_VERIFICATION.md
 - Implementation details: IMPLEMENTATION_SUMMARY.md
 
@@ -205,9 +259,20 @@ gunicorn app.main:app \
 | BINANCE_API_SECRET | Binance API secret | No | - |
 | BINANCE_API_BASE_URL | Binance API URL | No | https://api.binance.com |
 | BINANCE_WS_BASE_URL | Binance WebSocket URL | No | wss://stream.binance.com:9443 |
+| KAFKA_BOOTSTRAP_SERVERS | Kafka bootstrap servers | No | localhost:9092 |
+| KAFKA_NEWS_ARTICLES_TOPIC | Kafka topic for articles | No | news.articles |
+| KAFKA_NEWS_INSIGHTS_TOPIC | Kafka topic for insights | No | news.insights |
+| LLM_PROVIDER | LLM provider (ollama\|openai\|anthropic) | No | ollama |
+| LLM_MODEL | LLM model name | No | llama2 |
+| OPENAI_API_KEY | OpenAI API key | No | - |
+| ANTHROPIC_API_KEY | Anthropic API key | No | - |
+| NEWS_CRAWL_INTERVAL_MINUTES | News crawl interval | No | 60 |
+| NEWS_SOURCES | News sources to crawl | No | ["coindesk", "reuters", "bloomberg", "twitter"] |
+| TWITTER_BEARER_TOKEN | Twitter API token | No | - |
 | DEBUG | Enable debug mode | No | False |
 
 Note: BINANCE_API_KEY and BINANCE_API_SECRET are optional for public endpoints.
+For news crawler: Kafka must be running to publish news data.
 
 ## Architecture
 
