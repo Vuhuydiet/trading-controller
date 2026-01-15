@@ -18,11 +18,11 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 
 **News & Insights**
 - Automated news crawling from CoinDesk, Reuters, Bloomberg, Twitter
-- MongoDB-based article storage
+- Publishes to Kafka message queue for downstream consumption
 - AI-powered sentiment analysis and key point extraction
 - Cryptocurrency mention detection
 - Market impact prediction
-- Configurable cronjob pipeline for automatic processing
+- Standalone script for periodic execution
 
 **Authentication & Authorization**
 - JWT-based authentication
@@ -44,7 +44,8 @@ Trading Controller provides a backend API for cryptocurrency market data and tra
 ## Tech Stack
 
 - **Framework:** FastAPI 0.128.0+
-- **Database:** SQLite with SQLModel + MongoDB with Motor
+- **Database:** SQLite with SQLModel
+- **Message Queue:** Kafka with aiokafka
 - **Authentication:** JWT with python-jose
 - **External APIs:** Binance REST & WebSocket, CoinDesk, Reuters, Bloomberg, Twitter
 - **Validation:** Pydantic 2.12+
@@ -130,6 +131,34 @@ The application will be available at:
 - API: http://localhost:8000
 - Interactive Docs: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+
+### Run News Crawler
+
+The news crawler is a standalone script that runs independently from the main API.
+
+**Prerequisites:**
+```bash
+# Start Kafka (using Docker)
+docker run -d --name kafka \
+  -p 9092:9092 \
+  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+  apache/kafka:latest
+```
+
+**Run the crawler:**
+```bash
+# Periodic mode (runs continuously)
+python scripts/crawl_news.py
+
+# One-time execution
+python scripts/crawl_news.py --once
+
+# Using convenience scripts
+./scripts/start_crawler.sh   # Linux/Mac
+scripts\start_crawler.bat    # Windows
+```
+
+See [scripts/README.md](scripts/README.md) for detailed documentation.
 
 
 ## Project Structure
@@ -230,18 +259,20 @@ gunicorn app.main:app \
 | BINANCE_API_SECRET | Binance API secret | No | - |
 | BINANCE_API_BASE_URL | Binance API URL | No | https://api.binance.com |
 | BINANCE_WS_BASE_URL | Binance WebSocket URL | No | wss://stream.binance.com:9443 |
-| MONGODB_URI | MongoDB connection string | No | mongodb://localhost:27017 |
-| MONGODB_DB_NAME | MongoDB database name | No | trading_controller |
+| KAFKA_BOOTSTRAP_SERVERS | Kafka bootstrap servers | No | localhost:9092 |
+| KAFKA_NEWS_ARTICLES_TOPIC | Kafka topic for articles | No | news.articles |
+| KAFKA_NEWS_INSIGHTS_TOPIC | Kafka topic for insights | No | news.insights |
 | LLM_PROVIDER | LLM provider (ollama\|openai\|anthropic) | No | ollama |
 | LLM_MODEL | LLM model name | No | llama2 |
 | OPENAI_API_KEY | OpenAI API key | No | - |
 | ANTHROPIC_API_KEY | Anthropic API key | No | - |
 | NEWS_CRAWL_INTERVAL_MINUTES | News crawl interval | No | 60 |
+| NEWS_SOURCES | News sources to crawl | No | ["coindesk", "reuters", "bloomberg", "twitter"] |
 | TWITTER_BEARER_TOKEN | Twitter API token | No | - |
 | DEBUG | Enable debug mode | No | False |
 
 Note: BINANCE_API_KEY and BINANCE_API_SECRET are optional for public endpoints.
-For news module: MONGODB_URI is required to use news features.
+For news crawler: Kafka must be running to publish news data.
 
 ## Architecture
 

@@ -26,11 +26,14 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: Optional[str] = None
     BINANCE_API_SECRET: Optional[str] = None
 
-    # MongoDB Configuration for News Module
+    # MongoDB Configuration (for other modules)
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "trading_controller"
-    NEWS_COLLECTION: str = "news_articles"
-    INSIGHTS_COLLECTION: str = "news_insights"
+
+    # Kafka Configuration for News Module
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
+    KAFKA_NEWS_ARTICLES_TOPIC: str = "news.articles"
+    KAFKA_NEWS_INSIGHTS_TOPIC: str = "news.insights"
 
     # LLM Configuration for News Parsing
     LLM_PROVIDER: str = "ollama"

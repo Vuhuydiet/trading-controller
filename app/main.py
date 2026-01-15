@@ -21,26 +21,12 @@ from app.modules.market.features.ws_status.router import router as ws_status_rou
 from app.modules.market.infrastructure.binance_ws_manager import get_ws_manager
 from app.modules.market.infrastructure.ws_config import get_default_streams
 
-from app.modules.news.public_api import get_news_router, get_insights_router
-
 from app.modules.subscription.features.get_plans.router import router as plans_router
 from app.modules.subscription.features.buy_subscription.router import router as buy_sub_router
 
 from app.shared.core.logging_config import setup_logging
 from app.shared.infrastructure.db import create_db_and_tables, Session, engine
 from app.modules.subscription.infrastructure.seeder import seed_plans
-from app.modules.news.infrastructure.mongo_connection import MongoDB
-from app.modules.news.infrastructure.pipeline import NewsPipeline
-from app.modules.news.infrastructure.repository import MongoNewsRepository, MongoInsightRepository
-from app.modules.news.domain.services import NewsService
-from app.modules.news.infrastructure.crawlers import (
-    CoinDeskCrawler,
-    ReutersCrawler,
-    BloombergCrawler,
-    TwitterCrawler,
-)
-from app.modules.news.infrastructure.llm_adapter import get_llm_adapter
-from app.modules.news.domain.article import NewsSource
 
 setup_logging()
 
@@ -52,32 +38,6 @@ async def lifespan(app: FastAPI):
     with Session(engine) as session:
         seed_plans(session)
 
-    # Khởi tạo MongoDB cho News Module
-    print("Connecting to MongoDB...")
-    try:
-        await MongoDB.connect()
-
-        # Initialize News Pipeline
-        db = MongoDB.get_db()
-        news_repo = MongoNewsRepository(db)
-        insight_repo = MongoInsightRepository(db)
-
-        crawlers: Dict[NewsSource, Any] = {
-            NewsSource.COINDESK: CoinDeskCrawler(),
-            NewsSource.REUTERS: ReutersCrawler(),
-            NewsSource.BLOOMBERG: BloombergCrawler(),
-            NewsSource.TWITTER: TwitterCrawler(),
-        }
-
-        llm_adapter = get_llm_adapter()
-        news_service = NewsService(news_repo, insight_repo, crawlers, llm_adapter)
-
-        await NewsPipeline.initialize(news_service)
-        await NewsPipeline.start()
-        print("News pipeline started successfully")
-    except Exception as e:
-        print(f"Warning: Could not initialize MongoDB for News Module: {e}")
-
     # Khởi động WebSocket Manager
     print("Starting WebSocket manager...")
     ws_manager = get_ws_manager()
@@ -88,12 +48,6 @@ async def lifespan(app: FastAPI):
 
     print("Shutting down WebSocket manager...")
     await ws_manager.stop()
-
-    print("Shutting down News pipeline...")
-    await NewsPipeline.stop()
-
-    print("Disconnecting from MongoDB...")
-    await MongoDB.disconnect()
 
 # Khởi tạo app với lifespan đã gộp
 app = FastAPI(lifespan=lifespan, title="Modular Monolith Trading")
@@ -127,9 +81,6 @@ app.include_router(depth_router, prefix="/api/v1/market", tags=["market-data"])
 app.include_router(stream_router, prefix="/api/v1/market", tags=["market-data-stream"])
 app.include_router(symbols_router, prefix="/api/v1/market", tags=["market-symbols"])
 app.include_router(ws_status_router, prefix="/api/v1/market", tags=["market-websocket"])
-
-app.include_router(get_news_router, prefix="/api/v1/news", tags=["news"])
-app.include_router(get_insights_router, prefix="/api/v1/news", tags=["news-insights"])
 
 @app.get("/")
 def root():
