@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
@@ -26,11 +26,34 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: Optional[str] = None
     BINANCE_API_SECRET: Optional[str] = None
 
+    # Kafka Configuration for News Module
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
+    KAFKA_NEWS_ARTICLES_TOPIC: str = "news.articles"
+    KAFKA_NEWS_INSIGHTS_TOPIC: str = "news.insights"
+
+    # LLM Configuration for News Parsing
+    LLM_PROVIDER: str = "ollama"
+    LLM_MODEL: str = "llama2"
+    OPENAI_API_KEY: Optional[str] = None
+    ANTHROPIC_API_KEY: Optional[str] = None
+
+    # News Crawler Configuration
+    NEWS_CRAWL_INTERVAL_MINUTES: int = 60
+    NEWS_SOURCES: List[str] = ["coindesk", "reuters", "bloomberg", "twitter"]
+    TWITTER_API_KEY: Optional[str] = None
+    TWITTER_API_SECRET: Optional[str] = None
+    TWITTER_BEARER_TOKEN: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     ALGORITHM: str = "HS256"
 
-settings = Settings()
+
+# Settings can be instantiated without arguments because BaseSettings
+# loads all required fields from environment variables
+settings = Settings()  # pyright: ignore[reportCallIssue]
+
