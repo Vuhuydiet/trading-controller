@@ -13,6 +13,10 @@ from app.modules.identity.features.refresh_token.router import router as refresh
 from app.modules.identity.features.get_me.router import router as get_me_router
 
 from app.modules.analysis.features.analyze_news.router import router as analyze_router
+from app.modules.analysis.features.sentiment.router import router as sentiment_router
+from app.modules.analysis.features.prediction.router import router as prediction_router
+from app.modules.analysis.features.causal.router import router as causal_router
+from app.modules.analysis.features.history.router import router as history_router
 
 from app.modules.market.features.check_chart_access.router import router as chart_router
 from app.modules.market.features.get_klines.router import router as klines_router
@@ -73,7 +77,11 @@ app.include_router(forgot_pass_router, prefix="/api/v1", tags=["auth"])
 app.include_router(refresh_router, prefix="/api/v1", tags=["auth"])
 app.include_router(get_me_router, prefix="/api/v1", tags=["auth"])
 
-app.include_router(analyze_router, prefix="/api/v1", tags=["analysis"])
+app.include_router(analyze_router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(sentiment_router, prefix="/api/v1/analysis/sentiment", tags=["analysis-sentiment"])
+app.include_router(prediction_router, prefix="/api/v1/analysis/prediction", tags=["analysis-prediction"])
+app.include_router(causal_router, prefix="/api/v1/analysis/causal", tags=["analysis-causal"])
+app.include_router(history_router, prefix="/api/v1/analysis/history", tags=["analysis-history"])
 
 app.include_router(chart_router, prefix="/api/v1", tags=["market"])
 app.include_router(klines_router, prefix="/api/v1/market", tags=["market-data"])
