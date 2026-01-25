@@ -20,13 +20,14 @@ class AnalysisResult(SQLModel, table=True):
     __tablename__ = "analysis_results"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    news_id: str = Field(index=True)
+    news_id: str = Field(foreign_key="analysis_cached_news.news_id", index=True)
     sentiment: str
     confidence: float
     trend: str = Field(default="NEUTRAL")
     reasoning: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    news: Optional["CachedNews"] = Relationship(back_populates="analysis")
 
 # Database Table for Symbol Sentiment Analysis
 class SymbolSentiment(SQLModel, table=True):
@@ -105,3 +106,8 @@ class CachedNews(SQLModel, table=True):
     source: str
     content: str # Lưu tóm tắt hoặc full text tùy bạn
     published_at: datetime
+
+    analysis: Optional["AnalysisResult"] = Relationship(
+        back_populates="news",
+        sa_relationship_kwargs={"uselist": False} # 1-1 Relationship
+    )

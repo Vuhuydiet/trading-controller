@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from app.modules.analysis.domain.ports import AnalysisRepositoryPort
 from app.modules.analysis.domain.entities import AnalysisResult
 from app.modules.analysis.domain.entities import CachedNews
+from sqlalchemy.orm import joinedload
+from sqlmodel import select, func
 
 
 class SqlModelAnalysisRepo(AnalysisRepositoryPort):
@@ -72,3 +74,21 @@ class SqlModelAnalysisRepo(AnalysisRepositoryPort):
             )
             results = self.session.exec(statement).all()
             return list(results) if results else []
+    
+    async def get_news_feed(self, limit: int = 20, offset: int = 0) -> List[CachedNews]:
+        """
+        Lấy danh sách News KÈM THEO kết quả Analysis
+        """
+        statement = (
+            select(CachedNews)
+            .options(joinedload(CachedNews.analysis)) # type: ignore
+            .order_by(col(CachedNews.published_at).desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        results = self.session.exec(statement).unique().all()
+        return list(results) if results else []
+
+    async def count_news(self) -> int:
+        statement = select(func.count()).select_from(CachedNews)
+        return self.session.exec(statement).one() or 0
