@@ -30,6 +30,7 @@ dependencies = [
     "anthropic>=0.7.0",
     "kafka-python>=2.0.2",
     "aiokafka>=0.13.0",
+    "motor>=3.7.1",
 ]
 
 [tool.isort]

@@ -18,10 +18,6 @@ def create_db_and_tables():
     from app.modules.analysis.domain.entities import AnalysisResult
     SQLModel.metadata.create_all(engine)
 
-# Alias for compatibility
-def create_db_and_tables():
-    """Initialize database and create all tables"""
-    SQLModel.metadata.create_all(engine)
 
 def get_session():
     with Session(engine) as session:

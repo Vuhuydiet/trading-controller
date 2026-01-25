@@ -58,6 +58,8 @@ class AnalysisConsumer:
                     logger.info(f"Received news payload: {payload.get('url', 'No ID')}")
                     
                     with Session(engine) as session:
+                        repo = SqlModelAnalysisRepo(session)
+                        await repo.cache_news(payload)
                         handler = AnalyzeNewsHandler(
                             sentiment_bot=finbert_bot,
                             reasoning_bot=ollama_bot,

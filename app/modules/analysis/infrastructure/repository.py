@@ -1,6 +1,10 @@
-from sqlmodel import Session
+from typing import List
+from sqlmodel import Session, select, col
+from datetime import datetime, timezone
 from app.modules.analysis.domain.ports import AnalysisRepositoryPort
 from app.modules.analysis.domain.entities import AnalysisResult
+from app.modules.analysis.domain.entities import CachedNews
+
 
 class SqlModelAnalysisRepo(AnalysisRepositoryPort):
     def __init__(self, session: Session):
@@ -29,3 +33,42 @@ class SqlModelAnalysisRepo(AnalysisRepositoryPort):
         except Exception as e:
             print(f"Lỗi DB: {e}")
             return False
+        
+    # 1. Hàm lưu tin tức (Gọi khi Consumer nhận tin)
+    async def cache_news(self, news_data: dict) -> bool:
+        try:
+            # Kiểm tra trùng lặp
+            statement = select(CachedNews).where(CachedNews.news_id == news_data['url'])
+            existing = self.session.exec(statement).first()
+            
+            if not existing:
+                published_date = news_data.get('published_date')
+                if not published_date:
+                    published_date = datetime.now(timezone.utc)
+                news = CachedNews(
+                    news_id=news_data['url'],
+                    title=news_data['title'],
+                    source=news_data.get('source', 'unknown'),
+                    content=news_data.get('content', ''),
+                    published_at=published_date
+                )
+                self.session.add(news)
+                self.session.commit()
+            return True
+        except Exception as e:
+            print(f"Lỗi cache news: {e}")
+            return False
+
+    # 2. Hàm lấy tin tức cho Chatbot (Thay thế Mongo)
+    async def get_recent_news(self, symbol: str, limit: int = 3) -> List[CachedNews]:
+            statement = (
+                select(CachedNews)
+                .where(
+                    (col(CachedNews.title).contains(symbol)) | 
+                    (col(CachedNews.content).contains(symbol))
+                )
+                .order_by(col(CachedNews.published_at).desc())
+                .limit(limit)
+            )
+            results = self.session.exec(statement).all()
+            return list(results) if results else []

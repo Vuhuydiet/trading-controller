@@ -16,9 +16,10 @@ def send_test_news():
 
         # Tạo tin tức giả
         dummy_news = {
-            "url": "mock-news-id-123",
-            "title": "Bitcoin bất ngờ vượt mốc 100k USD",
-            "content": "Theo các chuyên gia, Bitcoin đã tăng trưởng mạnh mẽ vào sáng nay do FED giảm lãi suất. Thị trường Crypto đang rất hưng phấn.",
+            "url": "btc-news-test-01",
+            "title": "Elon Musk tuyên bố mua thêm 1 tỷ USD Bitcoin",
+            "content": "Giá BTC dự kiến sẽ tăng mạnh sau tin này...",
+            "source": "Breaking News",
             "published_at": datetime.now().isoformat()
         }
 

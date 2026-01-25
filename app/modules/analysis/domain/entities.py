@@ -1,8 +1,7 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import Relationship, SQLModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone
 from enum import Enum
-
 
 class SentimentLabel(str, Enum):
     BULLISH = "BULLISH"
@@ -93,3 +92,16 @@ class PredictionHistory(SQLModel, table=True):
     actual_direction: Optional[str] = None
     is_correct: Optional[bool] = None
     verified_at: Optional[datetime] = None
+
+
+
+# 👇 Bảng mới để lưu tin tức nhận từ Kafka
+class CachedNews(SQLModel, table=True):
+    __tablename__ = "analysis_cached_news"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    news_id: str = Field(unique=True, index=True) # URL hoặc ID từ Crawler
+    title: str
+    source: str
+    content: str # Lưu tóm tắt hoặc full text tùy bạn
+    published_at: datetime
