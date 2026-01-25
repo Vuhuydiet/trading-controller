@@ -1,3 +1,4 @@
+from venv import logger
 import ollama
 import json
 from app.modules.analysis.domain.ports import MarketReasonerPort, ReasoningResult
@@ -33,17 +34,18 @@ class OllamaLlamaAdapter(MarketReasonerPort):
         """
 
         try:
-            response = ollama.chat(model=self.model_name, messages=[
-                {'role': 'user', 'content': prompt}
-            ])
+            response = ollama.chat(
+                model=self.model_name, 
+                messages=[{'role': 'user', 'content': prompt}],
+                format='json' 
+            )
             content = response['message']['content']
 
-            # Extract JSON from response (in case AI adds extra text)
-            start = content.find('{')
-            end = content.rfind('}') + 1
-            parsed = json.loads(content[start:end])
+            logger.info(f"AI Raw Response: {content}")
 
-            # Convert to standardized format
+            # Vì đã có format='json', ta có thể parse thẳng luôn
+            parsed = json.loads(content)
+
             return ReasoningResult(
                 trend=parsed.get('trend', 'NEUTRAL'),
                 reasoning=parsed.get('reasoning', 'No explanation provided')

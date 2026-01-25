@@ -17,6 +17,7 @@ from app.modules.analysis.features.sentiment.router import router as sentiment_r
 from app.modules.analysis.features.prediction.router import router as prediction_router
 from app.modules.analysis.features.causal.router import router as causal_router
 from app.modules.analysis.features.history.router import router as history_router
+from app.modules.analysis.infrastructure.kafka_consumer import start_analysis_consumer
 
 from app.modules.market.features.check_chart_access.router import router as chart_router
 from app.modules.market.features.get_klines.router import router as klines_router
@@ -44,6 +45,9 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     with Session(engine) as session:
         seed_plans(session)
+
+    start_analysis_consumer()
+    print("AI Consumer is running in background...")
 
     # Khởi động WebSocket Manager
     print("Starting WebSocket manager...")
