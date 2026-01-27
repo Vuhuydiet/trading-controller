@@ -5,7 +5,7 @@ from app.shared.core.config import settings
 from .dtos import AnalyzeNewsRequest, AnalyzeNewsResponse
 from .handler import AnalyzeNewsHandler
 from app.shared.infrastructure.db import get_session
-from app.modules.analysis.features.analyze_news.dtos import NewsFeedResponse, NewsFeedItem, AnalysisSummary
+from app.modules.analysis.features.analyze_news.dtos import NewsFeedResponse, NewsFeedItem, AnalysisSummary, BatchAnalysisResponse
 
 # Import Domain Services
 from app.modules.analysis.domain.services import NewsPriceAligner
@@ -123,3 +123,85 @@ async def get_market_news_feed(
         ))
 
     return NewsFeedResponse(items=items, total=total)
+
+
+@router.post("/batch", response_model=BatchAnalysisResponse)
+async def batch_analyze_news(
+    limit: int = Query(10, ge=1, le=50, description="Max number of news to analyze"),
+    session: Session = Depends(get_session),
+    user: UserDTO = Depends(require_vip_access)
+):
+    """
+    Batch analyze all news that don't have analysis yet.
+
+    **Authentication Required**: VIP tier only
+
+    This endpoint will:
+    1. Find news without analysis (up to limit)
+    2. Run AI sentiment + reasoning on each
+    3. Save results to database
+    4. Return summary
+
+    Note: This may take a while depending on the number of news items.
+    """
+    repo = SqlModelAnalysisRepo(session)
+
+    # Get news without analysis
+    pending_news = await repo.get_news_without_analysis(limit)
+
+    if not pending_news:
+        return BatchAnalysisResponse(
+            total_pending=0,
+            analyzed=0,
+            failed=0,
+            results=[]
+        )
+
+    # Initialize AI models once
+    sentiment_analyzer = get_sentiment_analyzer()
+    market_reasoner = get_market_reasoner()
+    aligner = NewsPriceAligner()
+
+    analyzed = 0
+    failed = 0
+    results = []
+
+    for news in pending_news:
+        try:
+            handler = AnalyzeNewsHandler(
+                sentiment_bot=sentiment_analyzer,
+                reasoning_bot=market_reasoner,
+                repo=SqlModelAnalysisRepo(session),
+                aligner=aligner
+            )
+
+            request = AnalyzeNewsRequest(
+                news_id=news.news_id,
+                news_content=news.content or news.title,
+                published_at=news.published_at
+            )
+
+            result = await handler.execute(request)
+            analyzed += 1
+            results.append({
+                "news_id": news.news_id,
+                "title": news.title[:50] + "...",
+                "sentiment": result.sentiment,
+                "trend": result.trend,
+                "status": "success"
+            })
+        except Exception as e:
+            failed += 1
+            results.append({
+                "news_id": news.news_id,
+                "title": news.title[:50] + "...",
+                "error": str(e),
+                "status": "failed"
+            })
+
+    return BatchAnalysisResponse(
+        total_pending=len(pending_news),
+        analyzed=analyzed,
+        failed=failed,
+        results=results
+    )

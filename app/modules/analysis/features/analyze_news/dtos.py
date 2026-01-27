@@ -35,3 +35,11 @@ class NewsFeedItem(BaseModel):
 class NewsFeedResponse(BaseModel):
     items: List[NewsFeedItem]
     total: int
+
+
+# Batch Analysis Response
+class BatchAnalysisResponse(BaseModel):
+    total_pending: int
+    analyzed: int
+    failed: int
+    results: List[dict]
