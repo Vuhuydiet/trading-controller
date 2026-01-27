@@ -14,14 +14,11 @@ engine = create_engine(
 
 def create_db_and_tables():
     from app.modules.identity.domain.user import User
-    from app.modules.subscription.domain.plan import SubscriptionPlan, PlanFeature 
-    from app.modules.analysis.domain.entities import AnalysisResult
+    from app.modules.subscription.domain.plan import SubscriptionPlan, PlanFeature
+    from app.modules.analysis.domain.entities import AnalysisResult, CachedNews
+    from app.modules.news.infrastructure.structure_learner import LearnedPattern, ExtractionLog
     SQLModel.metadata.create_all(engine)
 
-# Alias for compatibility
-def create_db_and_tables():
-    """Initialize database and create all tables"""
-    SQLModel.metadata.create_all(engine)
 
 def get_session():
     with Session(engine) as session:

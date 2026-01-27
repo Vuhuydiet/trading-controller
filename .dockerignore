@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build
+*.egg-info
+dist
+build
+.eggs
+
+# Logs and databases
+*.log
+*.db
+logs/
+data/
+
+# Environment files (use env_file in docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Tests
+tests/
+.pytest_cache
+.coverage
+htmlcov
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Scripts (not needed in container)
+scripts/*.bat
+scripts/*.ps1
+
+# Misc
+.DS_Store
+Thumbs.db
+*.tmp

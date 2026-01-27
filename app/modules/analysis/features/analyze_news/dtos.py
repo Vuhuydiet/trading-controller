@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional, List
 
 # Input: Chỉ cần tin tức và thời gian (để Aligner tự làm việc)
 class AnalyzeNewsRequest(BaseModel):
@@ -13,3 +14,24 @@ class AnalyzeNewsResponse(BaseModel):
     confidence: float
     trend: str
     reasoning: str
+
+# Phần Analysis con
+class AnalysisSummary(BaseModel):
+    sentiment: str
+    score: float
+    trend: str
+
+# Object tổng hợp trả về FE
+class NewsFeedItem(BaseModel):
+    id: str # news_id
+    title: str
+    source: str
+    published_at: datetime
+    summary: str # Cắt ngắn content
+    
+    # 👇 Kèm theo phân tích (Optional vì có thể có bài chưa kịp phân tích)
+    analysis: Optional[AnalysisSummary] = None
+
+class NewsFeedResponse(BaseModel):
+    items: List[NewsFeedItem]
+    total: int

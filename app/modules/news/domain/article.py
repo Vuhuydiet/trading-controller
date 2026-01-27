@@ -14,6 +14,15 @@ class NewsSource(str, Enum):
     TWITTER = "twitter"
 
 
+class ArticleStatus(str, Enum):
+    """Article processing status"""
+
+    CRAWLED = "crawled"
+    NEW = "new"
+    PROCESSED = "processed"
+    ERROR = "error"
+
+
 class NewsArticle(BaseModel):
     """Domain model for news articles"""
 
@@ -23,6 +32,9 @@ class NewsArticle(BaseModel):
     url: str = Field(..., description="Article URL")
     author: Optional[str] = Field(default=None, description="Article author")
     published_at: datetime = Field(..., description="Publication date")
+    status: ArticleStatus = Field(
+        default=ArticleStatus.CRAWLED, description="Processing status"
+    )
 
     class Config:
         use_enum_values = True

@@ -5,7 +5,4 @@ __pycache__
 trading.db
 logs/
 *.log
-.env
-.DS_Store
-.idea/
-.vscode/
+tmpclaude-*
