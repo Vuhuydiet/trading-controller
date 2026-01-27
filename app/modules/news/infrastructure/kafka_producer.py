@@ -51,8 +51,11 @@ class KafkaNewsProducer:
             return False
 
         try:
+            # Handle both enum and string (due to use_enum_values=True in Pydantic)
+            source = article.source.value if hasattr(article.source, 'value') else article.source
+
             article_dict = {
-                "source": article.source.value,
+                "source": source,
                 "title": article.title,
                 "url": article.url,
                 "published_at": article.published_at.isoformat(),
