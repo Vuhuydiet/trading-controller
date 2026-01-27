@@ -103,7 +103,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: trading-crawler
-    command: ["python", "-m", "app.modules.news.infrastructure.scheduler"]
+    command: ["python", "scripts/crawl_news.py"]
     environment:
       - DATABASE_URL=sqlite:///./data/trading.db
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
@@ -113,6 +113,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./scripts:/app/scripts
     depends_on:
       - api
       - kafka
