@@ -1,5 +1,5 @@
 # Multi-stage build for smaller image
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
@@ -11,14 +11,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy dependency files
 COPY pyproject.toml ./
 
-# Create requirements.txt and install CPU-only PyTorch (MUCH smaller)
+# Install CPU-only PyTorch FIRST (before other deps)
+RUN pip install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Create requirements.txt and filter out CUDA/torch packages
 RUN pip install --no-cache-dir pip-tools && \
     pip-compile pyproject.toml -o requirements.txt && \
-    # Remove CUDA PyTorch and install CPU-only version
-    grep -v "nvidia" requirements.txt | grep -v "triton" > requirements-cpu.txt && \
-    pip install --no-cache-dir --target=/app/deps \
-        torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir --target=/app/deps -r requirements-cpu.txt
+    # Remove torch, nvidia, triton, cuda packages (we already installed CPU torch)
+    grep -v -E "^(torch|nvidia|triton|cuda)" requirements.txt > requirements-cpu.txt
+
+# Install remaining dependencies (torch is already installed, pip will skip it)
+RUN pip install --no-cache-dir -r requirements-cpu.txt
+
+# Copy all installed packages to /app/deps
+RUN cp -r /usr/local/lib/python3.11/site-packages /app/deps
 
 # Production stage
 FROM python:3.11-slim
