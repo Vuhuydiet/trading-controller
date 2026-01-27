@@ -92,3 +92,15 @@ class SqlModelAnalysisRepo(AnalysisRepositoryPort):
     async def count_news(self) -> int:
         statement = select(func.count()).select_from(CachedNews)
         return self.session.exec(statement).one() or 0
+
+    async def get_news_without_analysis(self, limit: int = 10) -> List[CachedNews]:
+        """Get news that don't have analysis yet"""
+        statement = (
+            select(CachedNews)
+            .outerjoin(AnalysisResult, CachedNews.news_id == AnalysisResult.news_id)
+            .where(AnalysisResult.id == None)
+            .order_by(col(CachedNews.published_at).desc())
+            .limit(limit)
+        )
+        results = self.session.exec(statement).all()
+        return list(results) if results else []
