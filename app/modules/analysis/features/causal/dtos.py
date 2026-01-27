@@ -1,12 +1,37 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
+class FeatureAttribution(BaseModel):
+    """SHAP-like feature attribution"""
+    feature: str
+    category: str
+    shap_value: float  # Contribution to prediction (-1 to 1)
+    direction: str  # "positive" or "negative"
+    importance_rank: int
+    explanation: str
+
+
+class ExplainabilityData(BaseModel):
+    """Complete explainability data for a prediction"""
+    prediction: str  # BULLISH, BEARISH, NEUTRAL
+    prediction_confidence: float
+    base_value: float
+    total_positive_contribution: float
+    total_negative_contribution: float
+    feature_attributions: List[FeatureAttribution]
+    visualization_data: Optional[Dict[str, Any]] = None
+
+
 class CausalFactor(BaseModel):
+    """Causal factor with Bayesian probabilities"""
     factor: str
-    category: str  # REGULATORY, ON_CHAIN, MARKET, NEWS, TECHNICAL
+    category: str  # REGULATORY, ON_CHAIN, MARKET, NEWS, TECHNICAL, MACRO
     impact_score: float = Field(..., ge=0.0, le=1.0)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    prior_probability: float = Field(default=0.2, ge=0.0, le=1.0)
+    posterior_probability: float = Field(default=0.4, ge=0.0, le=1.0)
     related_news: List[str] = Field(default_factory=list)
     explanation: str
 
@@ -29,11 +54,13 @@ class Period(BaseModel):
 
 
 class CausalAnalysisResponse(BaseModel):
+    """Response with full causal analysis and explainability"""
     symbol: str
     period: Period
     price_change: PriceChange
     causal_factors: List[CausalFactor]
     summary: str
+    explainability: Optional[ExplainabilityData] = None
     generated_at: datetime
 
 
@@ -47,9 +74,11 @@ class ExplainPriceRequest(BaseModel):
 
 
 class ExplainPriceResponse(BaseModel):
+    """Response with full price movement explanation"""
     symbol: str
     price_change: PriceChange
     causal_factors: List[CausalFactor]
     summary: str
     confidence: float
+    explainability: Optional[ExplainabilityData] = None
     generated_at: datetime

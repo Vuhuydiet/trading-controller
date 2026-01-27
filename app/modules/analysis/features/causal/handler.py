@@ -10,10 +10,17 @@ from .dtos import (
     CausalFactor,
     PriceChange,
     Period,
+    FeatureAttribution,
+    ExplainabilityData,
 )
 from app.modules.analysis.domain.ports import SentimentAnalyzerPort, MarketReasonerPort
 from app.modules.analysis.domain.entities import CausalAnalysis
 from app.modules.market.infrastructure.binance_rest_client import BinanceRestClient
+from app.shared.infrastructure.ai.causal_inference import get_causal_network, PriceDirection
+from app.shared.infrastructure.ai.feature_attribution import get_explainability_engine
+from app.shared.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class CausalHandler:
@@ -27,6 +34,8 @@ class CausalHandler:
         self.reasoner = reasoner
         self.session = session
         self.binance_client = BinanceRestClient()
+        self.causal_network = get_causal_network()
+        self.explainability_engine = get_explainability_engine()
 
     async def get_causal_analysis(
         self,
@@ -34,7 +43,7 @@ class CausalHandler:
         period_from: Optional[datetime] = None,
         period_to: Optional[datetime] = None,
     ) -> CausalAnalysisResponse:
-        """Get causal reasoning for price movement"""
+        """Get causal reasoning for price movement with Bayesian inference"""
 
         # Default to last 24 hours if not specified
         if period_to is None:
@@ -62,7 +71,7 @@ class CausalHandler:
         - Price moved from {price_from} to {price_to} ({change_str})
 
         Identify the main factors that caused this price movement.
-        Consider: regulatory news, on-chain data, market sentiment, technical factors.
+        Consider: regulatory news, on-chain data, market sentiment, technical factors, macro economics.
         """
 
         # Get AI reasoning
@@ -71,11 +80,40 @@ class CausalHandler:
             price_change=change_pct
         )
 
-        # Extract causal factors from reasoning
-        factors = self._extract_causal_factors(reasoning_result.reasoning, change_pct)
+        # Use Bayesian Causal Network for inference
+        causal_results, causal_summary = self.causal_network.infer(
+            text=reasoning_result.reasoning,
+            price_change_pct=change_pct,
+            additional_context=context
+        )
 
-        # Generate summary
-        summary = self._generate_summary(symbol, change_str, factors)
+        # Convert to CausalFactor DTOs with Bayesian posteriors
+        factors = []
+        for cr in causal_results:
+            factors.append(CausalFactor(
+                factor=cr.factor,
+                category=cr.category,
+                impact_score=cr.impact_score,
+                confidence=cr.confidence,
+                prior_probability=cr.prior_probability,
+                posterior_probability=cr.posterior_probability,
+                related_news=[],
+                explanation=cr.explanation
+            ))
+
+        # If no factors from Bayesian network, fall back to keyword extraction
+        if not factors:
+            factors = self._extract_causal_factors_fallback(reasoning_result.reasoning, change_pct)
+
+        # Generate explainability data
+        explainability = await self._generate_explainability(
+            reasoning_result.reasoning,
+            change_pct,
+            factors
+        )
+
+        # Generate enhanced summary
+        summary = self._generate_enhanced_summary(symbol, change_str, factors, causal_summary)
 
         # Save to database
         db_analysis = CausalAnalysis(
@@ -97,13 +135,14 @@ class CausalHandler:
             price_change=PriceChange(price_from=price_from, price_to=price_to, percent=change_str),
             causal_factors=factors,
             summary=summary,
+            explainability=explainability,
             generated_at=datetime.now(timezone.utc),
         )
 
     async def explain_price_movement(
         self, request: ExplainPriceRequest
     ) -> ExplainPriceResponse:
-        """Explain a specific price movement"""
+        """Explain a specific price movement with full explainability"""
 
         # Calculate price change
         price_from_float = float(request.price_from)
@@ -130,11 +169,50 @@ class CausalHandler:
         )
         sentiment_result = await self.sentiment_analyzer.analyze_sentiment(context)
 
-        # Extract causal factors
-        factors = self._extract_causal_factors(reasoning_result.reasoning, change_pct)
+        # Use full explainability engine
+        full_explanation = self.explainability_engine.explain_prediction(
+            text=reasoning_result.reasoning + " " + (request.additional_context or ""),
+            price_change_pct=change_pct
+        )
+
+        # Extract factors from causal analysis
+        factors = []
+        for cf in full_explanation["causal_analysis"]["factors"]:
+            factors.append(CausalFactor(
+                factor=cf["factor"],
+                category=cf["category"],
+                impact_score=cf["impact_score"],
+                confidence=cf["confidence"],
+                prior_probability=cf["prior"],
+                posterior_probability=cf["posterior"],
+                related_news=[],
+                explanation=cf["explanation"]
+            ))
+
+        # Create explainability data
+        attr_data = full_explanation["feature_attribution"]
+        explainability = ExplainabilityData(
+            prediction=attr_data["prediction"],
+            prediction_confidence=attr_data["confidence"],
+            base_value=attr_data["base_value"],
+            total_positive_contribution=attr_data["contributions"]["positive"],
+            total_negative_contribution=attr_data["contributions"]["negative"],
+            feature_attributions=[
+                FeatureAttribution(
+                    feature=f["feature"],
+                    category=f["category"],
+                    shap_value=f["shap_value"],
+                    direction=f["direction"],
+                    importance_rank=f["rank"],
+                    explanation=f["explanation"]
+                )
+                for f in attr_data["features"]
+            ],
+            visualization_data=attr_data["visualization"]
+        )
 
         # Generate summary
-        summary = self._generate_summary(request.symbol, change_str, factors)
+        summary = full_explanation["combined_explanation"]
 
         return ExplainPriceResponse(
             symbol=request.symbol,
@@ -146,6 +224,7 @@ class CausalHandler:
             causal_factors=factors,
             summary=summary,
             confidence=round(sentiment_result.score, 2),
+            explainability=explainability,
             generated_at=datetime.now(timezone.utc),
         )
 
@@ -181,70 +260,126 @@ class CausalHandler:
 
             return "0.00", "0.00"
         except Exception as e:
-            print(f"Error getting price range for {symbol}: {e}")
+            logger.error(f"Error getting price range for {symbol}: {e}")
             return "0.00", "0.00"
 
-    def _extract_causal_factors(
+    async def _generate_explainability(
+        self,
+        reasoning: str,
+        change_pct: float,
+        factors: List[CausalFactor]
+    ) -> Optional[ExplainabilityData]:
+        """Generate explainability data from factors"""
+        try:
+            # Convert factors to feature format
+            detected_features = {}
+            for f in factors:
+                detected_features[f.factor] = {
+                    "category": f.category,
+                    "strength": f.confidence,
+                    "is_positive": f.impact_score > 0
+                }
+
+            # Get attribution
+            from app.shared.infrastructure.ai.feature_attribution import FeatureAttributor
+            attributor = FeatureAttributor()
+
+            # Calculate prediction score from change
+            if change_pct > 2:
+                prediction_score = min(1.0, change_pct / 10)
+            elif change_pct < -2:
+                prediction_score = max(-1.0, change_pct / 10)
+            else:
+                prediction_score = change_pct / 5
+
+            result = attributor.compute_attribution(
+                detected_features,
+                prediction_score,
+                change_pct
+            )
+
+            return ExplainabilityData(
+                prediction=result.prediction.value,
+                prediction_confidence=result.confidence,
+                base_value=result.base_value,
+                total_positive_contribution=result.total_positive_contribution,
+                total_negative_contribution=result.total_negative_contribution,
+                feature_attributions=[
+                    FeatureAttribution(
+                        feature=f.feature_name,
+                        category=f.category,
+                        shap_value=f.shap_value,
+                        direction=f.direction,
+                        importance_rank=f.importance_rank,
+                        explanation=f.explanation
+                    )
+                    for f in result.features
+                ],
+                visualization_data=attributor._generate_waterfall_data(result)
+            )
+        except Exception as e:
+            logger.error(f"Error generating explainability: {e}")
+            return None
+
+    def _extract_causal_factors_fallback(
         self, reasoning: str, change_pct: float
     ) -> List[CausalFactor]:
-        """Extract causal factors from AI reasoning"""
+        """Fallback keyword-based extraction when Bayesian network finds nothing"""
         factors = []
         reasoning_lower = reasoning.lower()
 
-        # Detect regulatory factors
-        if any(word in reasoning_lower for word in ["etf", "sec", "regulation", "regulatory", "approval", "law"]):
-            impact = 0.35 if change_pct > 0 else 0.30
-            factors.append(CausalFactor(
-                factor="Regulatory developments",
-                category="REGULATORY",
-                impact_score=impact,
-                related_news=[],
-                explanation=self._extract_sentence(reasoning, ["etf", "sec", "regulation", "regulatory"])
-            ))
+        factor_configs = [
+            {
+                "keywords": ["etf", "sec", "regulation", "regulatory", "approval", "law"],
+                "factor": "Regulatory developments",
+                "category": "REGULATORY",
+                "base_impact": 0.35
+            },
+            {
+                "keywords": ["whale", "accumulation", "wallet", "on-chain", "transfer"],
+                "factor": "On-chain activity",
+                "category": "ON_CHAIN",
+                "base_impact": 0.25
+            },
+            {
+                "keywords": ["market", "sentiment", "trading", "volume", "liquidity"],
+                "factor": "Market dynamics",
+                "category": "MARKET",
+                "base_impact": 0.30
+            },
+            {
+                "keywords": ["news", "announcement", "report", "partnership"],
+                "factor": "News and announcements",
+                "category": "NEWS",
+                "base_impact": 0.20
+            },
+            {
+                "keywords": ["support", "resistance", "breakout", "technical", "trend"],
+                "factor": "Technical analysis",
+                "category": "TECHNICAL",
+                "base_impact": 0.25
+            },
+            {
+                "keywords": ["fed", "interest", "inflation", "macro", "economy"],
+                "factor": "Macroeconomic factors",
+                "category": "MACRO",
+                "base_impact": 0.20
+            }
+        ]
 
-        # Detect on-chain factors
-        if any(word in reasoning_lower for word in ["whale", "accumulation", "wallet", "on-chain", "transfer"]):
-            impact = 0.25
-            factors.append(CausalFactor(
-                factor="On-chain activity",
-                category="ON_CHAIN",
-                impact_score=impact,
-                related_news=[],
-                explanation=self._extract_sentence(reasoning, ["whale", "accumulation", "wallet"])
-            ))
-
-        # Detect market factors
-        if any(word in reasoning_lower for word in ["market", "sentiment", "trading", "volume", "liquidity"]):
-            impact = 0.30
-            factors.append(CausalFactor(
-                factor="Market dynamics",
-                category="MARKET",
-                impact_score=impact,
-                related_news=[],
-                explanation=self._extract_sentence(reasoning, ["market", "sentiment", "volume"])
-            ))
-
-        # Detect news factors
-        if any(word in reasoning_lower for word in ["news", "announcement", "report", "partnership"]):
-            impact = 0.20
-            factors.append(CausalFactor(
-                factor="News and announcements",
-                category="NEWS",
-                impact_score=impact,
-                related_news=[],
-                explanation=self._extract_sentence(reasoning, ["news", "announcement"])
-            ))
-
-        # Detect technical factors
-        if any(word in reasoning_lower for word in ["support", "resistance", "breakout", "technical", "trend"]):
-            impact = 0.25
-            factors.append(CausalFactor(
-                factor="Technical analysis",
-                category="TECHNICAL",
-                impact_score=impact,
-                related_news=[],
-                explanation=self._extract_sentence(reasoning, ["support", "resistance", "breakout"])
-            ))
+        for config in factor_configs:
+            if any(word in reasoning_lower for word in config["keywords"]):
+                impact = config["base_impact"] if change_pct > 0 else config["base_impact"] * 0.9
+                factors.append(CausalFactor(
+                    factor=config["factor"],
+                    category=config["category"],
+                    impact_score=impact,
+                    confidence=0.5,  # Lower confidence for keyword-based
+                    prior_probability=0.2,
+                    posterior_probability=0.4,
+                    related_news=[],
+                    explanation=self._extract_sentence(reasoning, config["keywords"])
+                ))
 
         # Default factor if none found
         if not factors:
@@ -253,6 +388,9 @@ class CausalHandler:
                 factor="General market movement",
                 category="MARKET",
                 impact_score=0.50,
+                confidence=0.3,
+                prior_probability=0.33,
+                posterior_probability=0.33,
                 related_news=[],
                 explanation=f"The {direction} price movement appears to be driven by overall market conditions."
             ))
@@ -261,7 +399,7 @@ class CausalHandler:
         total_impact = sum(f.impact_score for f in factors)
         if total_impact > 0:
             for factor in factors:
-                factor.impact_score = round(factor.impact_score / total_impact, 2)
+                factor.impact_score = round(factor.impact_score / total_impact, 3)
 
         return factors
 
@@ -275,10 +413,14 @@ class CausalHandler:
 
         return "Based on AI analysis of market conditions."
 
-    def _generate_summary(
-        self, symbol: str, change_str: str, factors: List[CausalFactor]
+    def _generate_enhanced_summary(
+        self,
+        symbol: str,
+        change_str: str,
+        factors: List[CausalFactor],
+        causal_summary: str
     ) -> str:
-        """Generate summary from causal factors"""
+        """Generate enhanced summary combining all analyses"""
         if not factors:
             return f"{symbol} price change of {change_str} driven by general market conditions."
 
@@ -286,11 +428,24 @@ class CausalHandler:
         sorted_factors = sorted(factors, key=lambda f: f.impact_score, reverse=True)
         main_factor = sorted_factors[0]
 
-        summary = f"{symbol} price change of {change_str} primarily driven by {main_factor.factor.lower()}"
+        lines = [
+            f"📊 {symbol} Analysis Summary",
+            f"",
+            f"Price Change: {change_str}",
+            f"",
+            f"🔍 Primary Driver: {main_factor.factor}",
+            f"   - Impact: {main_factor.impact_score*100:.0f}%",
+            f"   - Confidence: {main_factor.confidence*100:.0f}%",
+            f"   - Bayesian Posterior: {main_factor.posterior_probability:.2f}",
+        ]
 
         if len(sorted_factors) > 1:
-            secondary = sorted_factors[1]
-            summary += f", with additional influence from {secondary.factor.lower()}"
+            lines.append(f"")
+            lines.append(f"📈 Secondary Factors:")
+            for f in sorted_factors[1:3]:
+                lines.append(f"   - {f.factor}: {f.impact_score*100:.0f}% impact")
 
-        summary += "."
-        return summary
+        lines.append(f"")
+        lines.append(f"💡 {causal_summary}")
+
+        return "\n".join(lines)

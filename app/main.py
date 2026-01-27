@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -19,6 +20,8 @@ from app.modules.analysis.features.causal.router import router as causal_router
 from app.modules.analysis.features.history.router import router as history_router
 from app.modules.analysis.infrastructure.kafka_consumer import start_analysis_consumer
 from app.modules.analysis.features.chat.router import router as chat_router
+from app.modules.news.features.router import router as news_router
+from app.modules.news.features.patterns_router import router as patterns_router
 
 from app.modules.market.features.check_chart_access.router import router as chart_router
 from app.modules.market.features.get_klines.router import router as klines_router
@@ -64,13 +67,23 @@ async def lifespan(app: FastAPI):
 # Khởi tạo app với lifespan đã gộp
 app = FastAPI(lifespan=lifespan, title="Modular Monolith Trading")
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# CORS Configuration - Read from environment or use defaults
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if cors_origins_env:
+    import json
+    try:
+        cors_origins = json.loads(cors_origins_env)
+    except json.JSONDecodeError:
+        cors_origins = cors_origins_env.split(",")
+else:
+    cors_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ],
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,6 +102,11 @@ app.include_router(causal_router, prefix="/api/v1/analysis/causal", tags=["analy
 app.include_router(history_router, prefix="/api/v1/analysis/history", tags=["analysis-history"])
 app.include_router(chat_router, prefix="/api/v1/analysis/chat", tags=["analysis-chat"])
 
+# IMPORTANT: patterns_router must be registered BEFORE news_router
+# because news_router has catch-all route /{news_id:path}
+app.include_router(patterns_router, prefix="/api/v1/news", tags=["news-patterns"])
+app.include_router(news_router, prefix="/api/v1/news", tags=["news"])
+
 
 app.include_router(chart_router, prefix="/api/v1", tags=["market"])
 app.include_router(klines_router, prefix="/api/v1/market", tags=["market-data"])
@@ -105,3 +123,9 @@ app.include_router(buy_sub_router, prefix="/api/v1", tags=["subscription"])
 @app.get("/")
 def root():
     return {"message": "System is running with Modular Monolith Architecture"}
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for Docker/load balancer"""
+    return {"status": "healthy", "service": "trading-controller"}
