@@ -75,6 +75,25 @@ class SqlModelAnalysisRepo(AnalysisRepositoryPort):
             results = self.session.exec(statement).all()
             return list(results) if results else []
     
+    async def get_news_feed_with_count(self, limit: int = 20, offset: int = 0) -> tuple[List[CachedNews], int]:
+        """
+        Lấy danh sách News KÈM THEO kết quả Analysis + total count trong 1 query
+        """
+        # Get total count first (fast with index on published_at)
+        count_stmt = select(func.count()).select_from(CachedNews)
+        total = self.session.exec(count_stmt).one() or 0
+
+        # Get paginated data with analysis
+        statement = (
+            select(CachedNews)
+            .options(joinedload(CachedNews.analysis)) # type: ignore
+            .order_by(col(CachedNews.published_at).desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        results = self.session.exec(statement).unique().all()
+        return (list(results) if results else [], total)
+
     async def get_news_feed(self, limit: int = 20, offset: int = 0) -> List[CachedNews]:
         """
         Lấy danh sách News KÈM THEO kết quả Analysis

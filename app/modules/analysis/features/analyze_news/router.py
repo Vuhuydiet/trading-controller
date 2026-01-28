@@ -95,10 +95,9 @@ async def get_market_news_feed(
     """
     repo = SqlModelAnalysisRepo(session)
     offset = (page - 1) * limit
-    
-    # 1. Query DB
-    news_list = await repo.get_news_feed(limit, offset)
-    total = await repo.count_news()
+
+    # 1. Query DB (optimized - single transaction)
+    news_list, total = await repo.get_news_feed_with_count(limit, offset)
 
     # 2. Map Entity -> DTO
     items = []
