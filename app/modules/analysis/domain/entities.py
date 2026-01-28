@@ -103,9 +103,9 @@ class CachedNews(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     news_id: str = Field(unique=True, index=True) # URL hoặc ID từ Crawler
     title: str
-    source: str
+    source: str = Field(index=True)  # Index for filtering by source
     content: str # Lưu tóm tắt hoặc full text tùy bạn
-    published_at: datetime
+    published_at: datetime = Field(index=True)  # Index for ORDER BY performance
 
     analysis: Optional["AnalysisResult"] = Relationship(
         back_populates="news",
