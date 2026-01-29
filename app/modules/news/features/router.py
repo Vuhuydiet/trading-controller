@@ -1,6 +1,7 @@
 """News API Router"""
 
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 from urllib.parse import unquote
 
@@ -9,9 +10,7 @@ from sqlmodel import Session
 
 from app.shared.infrastructure.db import get_session
 from app.modules.news.features.dtos import (
-    NewsBySymbolResponse,
     NewsDetailResponse,
-    NewsItemResponse,
     NewsListResponse,
 )
 from app.modules.news.features.handler import NewsHandler
@@ -19,78 +18,94 @@ from app.modules.news.features.handler import NewsHandler
 router = APIRouter()
 
 
+class NewsSource(str, Enum):
+    """Available news sources"""
+    COINDESK = "coindesk"
+    REUTERS = "reuters"
+    BLOOMBERG = "bloomberg"
+    TWITTER = "twitter"
+
+
+class CryptoSymbol(str, Enum):
+    """Supported cryptocurrency symbols"""
+    BTCUSDT = "BTCUSDT"
+    ETHUSDT = "ETHUSDT"
+    BNBUSDT = "BNBUSDT"
+    XRPUSDT = "XRPUSDT"
+    SOLUSDT = "SOLUSDT"
+    ADAUSDT = "ADAUSDT"
+    DOGEUSDT = "DOGEUSDT"
+    DOTUSDT = "DOTUSDT"
+    MATICUSDT = "MATICUSDT"
+    LTCUSDT = "LTCUSDT"
+
+
 @router.get(
     "",
     response_model=NewsListResponse,
-    summary="Get News List",
-    description="Get paginated list of news articles with optional source filter",
+    summary="Get News",
+    description="""
+Get paginated news articles with flexible filtering options.
+
+**Examples:**
+- Get all news: `GET /news`
+- Search by keyword: `GET /news?q=bitcoin`
+- Filter by symbol: `GET /news?symbol=BTCUSDT`
+- Filter by source: `GET /news?source=coindesk`
+- Combined filters: `GET /news?q=price&symbol=BTCUSDT&source=bloomberg`
+- Date range: `GET /news?from_date=2024-01-01&to_date=2024-01-31`
+""",
 )
-async def get_news_list(
+async def get_news(
     page: int = Query(default=1, ge=1, description="Page number"),
     limit: int = Query(default=20, ge=1, le=50, description="Items per page"),
-    source: Optional[str] = Query(default=None, description="Filter by news source"),
+    q: Optional[str] = Query(
+        default=None,
+        min_length=2,
+        description="Search keyword in title and content",
+        examples=["bitcoin", "ethereum", "crypto market", "SEC regulation", "price surge"],
+    ),
+    symbol: Optional[CryptoSymbol] = Query(
+        default=None,
+        description="Filter by cryptocurrency symbol (e.g., BTCUSDT searches for 'bitcoin', 'btc')",
+    ),
+    source: Optional[NewsSource] = Query(
+        default=None,
+        description="Filter by news source",
+    ),
+    from_date: Optional[datetime] = Query(
+        default=None,
+        description="Filter news from this date (ISO format)",
+        examples=["2024-01-01T00:00:00"],
+    ),
+    to_date: Optional[datetime] = Query(
+        default=None,
+        description="Filter news until this date (ISO format)",
+        examples=["2024-12-31T23:59:59"],
+    ),
     session: Session = Depends(get_session),
 ):
     """
-    Get paginated news list.
+    Unified news endpoint with flexible filtering.
 
     - **page**: Page number (default: 1)
     - **limit**: Items per page (default: 20, max: 50)
-    - **source**: Optional filter by source (coindesk, reuters, bloomberg, twitter)
+    - **q**: Search keyword (searches in title and content, case-insensitive)
+    - **symbol**: Filter by crypto symbol (BTCUSDT, ETHUSDT, etc.)
+    - **source**: Filter by news source (coindesk, reuters, bloomberg, twitter)
+    - **from_date**: Filter news published after this date
+    - **to_date**: Filter news published before this date
     """
     handler = NewsHandler(session)
-    return await handler.get_news_list(page=page, limit=limit, source=source)
-
-
-@router.get(
-    "/search",
-    response_model=dict,
-    summary="Search News",
-    description="Search news by keyword with optional filters",
-)
-async def search_news(
-    q: str = Query(..., min_length=2, description="Search query"),
-    source: Optional[str] = Query(default=None, description="Filter by source"),
-    from_date: Optional[datetime] = Query(default=None, description="From date"),
-    to_date: Optional[datetime] = Query(default=None, description="To date"),
-    limit: int = Query(default=20, ge=1, le=50, description="Max results"),
-    session: Session = Depends(get_session),
-):
-    """
-    Search news articles by keyword.
-
-    - **q**: Search query (min 2 characters)
-    - **source**: Optional filter by source
-    - **from_date**: Optional start date filter
-    - **to_date**: Optional end date filter
-    - **limit**: Maximum number of results (default: 20)
-    """
-    handler = NewsHandler(session)
-    items, total = await handler.search_news(
-        query=q, source=source, from_date=from_date, to_date=to_date, limit=limit
+    return await handler.get_news(
+        page=page,
+        limit=limit,
+        q=q,
+        symbol=symbol.value if symbol else None,
+        source=source.value if source else None,
+        from_date=from_date,
+        to_date=to_date,
     )
-    return {"items": items, "total": total, "query": q}
-
-
-@router.get(
-    "/by-symbol/{symbol}",
-    response_model=NewsBySymbolResponse,
-    summary="Get News by Symbol",
-    description="Get news related to a specific cryptocurrency symbol",
-)
-async def get_news_by_symbol(
-    symbol: str,
-    limit: int = Query(default=10, ge=1, le=50, description="Max results"),
-    session: Session = Depends(get_session),
-):
-    """
-    Get news related to a specific cryptocurrency symbol.
-
-    - **symbol**: Trading pair symbol (e.g., BTCUSDT, ETHUSDT)
-    - **limit**: Maximum number of results (default: 10)
-    """
-    handler = NewsHandler(session)
-    return await handler.get_news_by_symbol(symbol=symbol.upper(), limit=limit)
 
 
 @router.get(
