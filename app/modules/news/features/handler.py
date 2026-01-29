@@ -45,24 +45,64 @@ class NewsHandler:
             analysis=analysis,
         )
 
-    async def get_news_list(
-        self, page: int = 1, limit: int = 20, source: Optional[str] = None
+    async def get_news(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        q: Optional[str] = None,
+        symbol: Optional[str] = None,
+        source: Optional[str] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
     ) -> NewsListResponse:
-        """Get paginated news list"""
+        """
+        Unified news query with flexible filtering.
+        Combines list, search, and by-symbol functionality.
+        """
         offset = (page - 1) * limit
 
-        # Build query
+        # Build base query
         query = select(CachedNews)
         count_query = select(func.count()).select_from(CachedNews)
 
+        conditions = []
+
+        # Search by keyword (q)
+        if q:
+            search_condition = or_(
+                col(CachedNews.title).icontains(q),
+                col(CachedNews.content).icontains(q),
+            )
+            conditions.append(search_condition)
+
+        # Filter by symbol (convert to search terms)
+        if symbol:
+            search_terms = self._get_symbol_search_terms(symbol)
+            symbol_conditions = []
+            for term in search_terms:
+                symbol_conditions.append(col(CachedNews.title).icontains(term))
+                symbol_conditions.append(col(CachedNews.content).icontains(term))
+            conditions.append(or_(*symbol_conditions))
+
+        # Filter by source
         if source:
-            query = query.where(CachedNews.source == source)
-            count_query = count_query.where(CachedNews.source == source)
+            conditions.append(CachedNews.source == source)
+
+        # Filter by date range
+        if from_date:
+            conditions.append(CachedNews.published_at >= from_date)
+        if to_date:
+            conditions.append(CachedNews.published_at <= to_date)
+
+        # Apply conditions
+        for cond in conditions:
+            query = query.where(cond)
+            count_query = count_query.where(cond)
 
         # Get total count
         total = self.session.exec(count_query).one() or 0
 
-        # Get paginated results with analysis
+        # Get paginated results
         query = (
             query.order_by(col(CachedNews.published_at).desc())
             .offset(offset)
@@ -73,7 +113,6 @@ class NewsHandler:
         # Load analysis for each news
         items = []
         for news in results:
-            # Manually load analysis relationship
             analysis_query = select(AnalysisResult).where(
                 AnalysisResult.news_id == news.news_id
             )
